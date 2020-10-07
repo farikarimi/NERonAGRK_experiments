@@ -1,4 +1,4 @@
-from preprocess_util import strip_diacritics
+from util_funcs import strip_diacritics
 
 
 def get_gold_toponyms():

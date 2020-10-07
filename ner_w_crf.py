@@ -1,25 +1,32 @@
 import csv
 import datetime
+import math
+import faulthandler
+from timeit import default_timer as timer
 import eli5
+import sklearn
 import sklearn_crfsuite
 from sklearn_crfsuite.metrics import flat_classification_report
 from sklearn.model_selection import cross_val_predict
 from gold_standard_funcs import has_gold_word
-from preprocess_util import print_both
+from util_funcs import print2both
+from lev_distance import get_smallest_lev_dist_in_para
+from grk_xml_funcs import get_grk_sentences
 
 
 def get_gold_sentences(sents):
     """Extracts from the given list of sentences those that
     contain a word from the gold standard lists and returns them."""
-    gold_sentences = [sentence for sentence in sents if has_gold_word([token[0] for token in sentence])]
-    print(f'found {len(gold_sentences)} sentences that contain a name from the gold standard lists\n\n')
-    return gold_sentences
+    g_sentences = [sentence for sentence in sents if has_gold_word([token[0] for token in sentence])]
+    print(f'found {len(g_sentences)} sentences that contain a name from the gold standard lists\n\n')
+    return g_sentences
 
 
 def word2features(sent, i):
     """Returns the feature dictionary for a token."""
     word = sent[i][0]
     postag = sent[i][1]
+    smallest_lev_dist = get_smallest_lev_dist_in_para(token_para_no=sent[i][3], token=sent[i][0])
 
     features = {
         'bias': 1.0,
@@ -27,7 +34,8 @@ def word2features(sent, i):
         'word[-2:]': word[-2:],
         'word.istitle()': word.istitle(),
         'postag': postag,
-        'postag[:1]': postag[:1]
+        'postag[:1]': postag[:1],
+        'smallest_lev_dist': smallest_lev_dist
     }
 
     if i > 0:
@@ -171,12 +179,29 @@ def performance_measurement(crf_model, x, y, gold_sentences):
     file = open(f'results/performance_measurement_results_{datetime.datetime.today().date()}.txt', 'a')
     file.seek(0)
     file.truncate()
-    print_both('created on:', str(datetime.datetime.today().date()), '\n', file=file)
-    print_both('flat_classification_report:\n\n', report, '\n\n', file=file)
-    print_both('cross_val_predict:\n\n', cross_val_predictions, '\n\n', file=file)
+    print2both('created on:', str(datetime.datetime.today().date()), '\n', file=file)
+    print2both('flat_classification_report:\n\n', report, '\n\n', file=file)
+    print2both('cross_val_predict:\n\n', cross_val_predictions, '\n\n', file=file)
     # Showing the weights assigned to each feature
-    print_both('eli5.explain_weights(crf, top=100):\n\n',
+    print2both('eli5.explain_weights(crf, top=100):\n\n',
                eli5.format_as_text(eli5.explain_weights(crf_model, top=100)), '\n\n', file=file)
     file.close()
     # Saving the potentially correct and the incorrect classifications in separate CSV files for review
     categorize_predictions(gold_sentences=gold_sentences, y_hat=cross_val_predictions, y_actual=y)
+
+
+if __name__ == '__main__':
+    faulthandler.enable()
+    print('\nsklearn: %s' % sklearn.__version__)  # 0.23.2
+    print('\nrunning ner_w_crf.py...')
+    start = timer()
+
+    sentences = get_grk_sentences()
+    gold_sentences = get_gold_sentences(sents=sentences)
+    crf = train_crf_model(gold_sentences=gold_sentences)
+    predictions = make_predictions(crf_model=crf[0], sents=sentences)
+    save_predictions(sents=sentences, y_hat=predictions)
+    performance_measurement(crf_model=crf[0], x=crf[1], y=crf[2], gold_sentences=gold_sentences)
+
+    end = timer()
+    print(f'\nelapsed time: {math.ceil((end - start) / 60)} minutes')

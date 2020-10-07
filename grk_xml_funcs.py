@@ -1,20 +1,24 @@
 import xml.etree.ElementTree as eTree
-from preprocess_util import PUNCTUATION
+from util_funcs import PUNCTUATION
 from gold_standard_funcs import get_type
 
-
-def get_xml_root(path):
-    """Returns the root element of the XML file from the given path."""
-    return eTree.parse(path).getroot()
+GRK_XML_ROOT = eTree.parse('data/hdt_complete-greek_postags.xml').getroot()
 
 
-def get_agrk_sentences(path):
+def get_grk_para_nos():
+    grk_para_nos = []
+    for t in GRK_XML_ROOT.iter('t'):
+        if t.get('p') not in grk_para_nos:
+            grk_para_nos.append(t.get('p'))
+    return grk_para_nos
+
+
+def get_grk_sentences():
     """Returns a list containing all of the sentences from Histories' Ancient Greek XML file from the given path."""
     # Reading the XML file with the annotated text of Histories.
-    root = get_xml_root(path)
     sentences = []
-    print(f'\nfound {len(root.findall("s"))} sentences in {path}\n')
-    for s in root.findall('s'):
+    print(f'\nfound {len(GRK_XML_ROOT.findall("s"))} sentences in Greek XML file\n')
+    for s in GRK_XML_ROOT.findall('s'):
         ts = [t for t in s.findall('t') if t.text is not None and t.text not in PUNCTUATION]
         tokens = []
         for t in ts:
