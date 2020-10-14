@@ -40,7 +40,7 @@ def create_eng_grk_dict():
     eng_names_list = combine_lists(get_eng_nes_per_para(ne_type='all'))
     eng_names_set_list = sort_and_deduplicate(eng_names_list)
     lst2file(eng_names_set_list, 'results/english_names.txt')
-    with open('data/eng_to_grk_name_translations.txt', 'r') as translation_file:
+    with open('data/eng_to_grk_name_translations.txt', 'r', encoding='utf-8') as translation_file:
         eng_to_grk_name_translations = [name for name in translation_file.read().splitlines()]
     eng_to_grk_dict_clean = {eng_name: grk_name for eng_name, grk_name in
                              zip(eng_names_set_list, eng_to_grk_name_translations) if not is_english(grk_name)}

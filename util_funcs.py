@@ -17,6 +17,6 @@ def print2both(*args, file):
 
 def lst2file(lst, path):
     """Writes the items in the given list to the file at the given path separated by a newline."""
-    with open(path, 'w') as file:
+    with open(path, 'w', encoding='utf-8') as file:
         for name in lst:
             file.write(name + '\n')

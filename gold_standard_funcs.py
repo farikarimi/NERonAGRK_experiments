@@ -3,14 +3,14 @@ from util_funcs import strip_diacritics
 
 def get_gold_toponyms():
     """Returns the gold standard list for toponyms."""
-    with open('data/places_gold-standard_extended.txt', 'r') as places_file:
+    with open('data/places_gold-standard_extended.txt', 'r', encoding='utf-8') as places_file:
         places_txt = places_file.read()
     return [strip_diacritics(place) for place in places_txt.splitlines()]
 
 
 def get_gold_ethnonyms():
     """Returns the gold standard list for ethnonyms."""
-    with open('data/ethnics_gold-standard_extended.txt', 'r') as ethnics_file:
+    with open('data/ethnics_gold-standard_extended.txt', 'r', encoding='utf-8') as ethnics_file:
         ethnics_txt = ethnics_file.read()
     return [strip_diacritics(ethnic) for ethnic in ethnics_txt.splitlines()]
 
