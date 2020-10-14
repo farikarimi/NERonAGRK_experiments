@@ -80,11 +80,11 @@ def sent2tokens(sent):
     return [form for form, pos, label, para in sent]
 
 
-def train_crf_model(gold_sentences):
+def train_crf_model(gold_stan_sentences):
     """Returns [0] a CRF model trained to recognize toponyms and ethnonyms in Herodotus' Histories
     and [1] the features and [2] labels used for training it."""
-    features = [sent2features(s) for s in gold_sentences]
-    labels = [sent2labels(s) for s in gold_sentences]
+    features = [sent2features(s) for s in gold_stan_sentences]
+    labels = [sent2labels(s) for s in gold_stan_sentences]
     crf_model = sklearn_crfsuite.CRF(c1=0.1, c2=0.1, max_iterations=100)
     crf_model = crf_model.fit(X=features, y=labels)
     return crf_model, features, labels
@@ -125,7 +125,7 @@ def save_predictions(sents, y_hat):
     csv_file.close()
 
 
-def categorize_predictions(gold_sentences, y_hat, y_actual):
+def categorize_predictions(gold_sents, y_hat, y_actual):
     """Categorizes the predictions of the cross-validation into potentially correct and incorrect classifications and
     saves them in two seperate CSV files."""
     f1 = open(f'results/potentially_correct_predictions_{datetime.datetime.today().date()}.csv', 'w')
@@ -139,16 +139,16 @@ def categorize_predictions(gold_sentences, y_hat, y_actual):
     writer2.writeheader()
     for i in range(len(y_hat)):
         for j in range(len(y_hat[i])):
-            sent = [gold_sentences[i][k][0] for k in range(len(gold_sentences[i]))]
+            sent = [gold_sents[i][k][0] for k in range(len(gold_sents[i]))]
             if y_actual[i][j] != y_hat[i][j]:
                 # predictions that could be right
                 if y_actual[i][j] == '0':
                     number1 += 1
                     writer1.writerow({
                         'no': str(number1),
-                        'token': gold_sentences[i][j][0],
-                        'pos': gold_sentences[i][j][1],
-                        'actual_label': gold_sentences[i][j][2],
+                        'token': gold_sents[i][j][0],
+                        'pos': gold_sents[i][j][1],
+                        'actual_label': gold_sents[i][j][2],
                         'predicted_label': y_hat[i][j],
                         'sent_no': str(i),
                         'token_no': str(j),
@@ -159,9 +159,9 @@ def categorize_predictions(gold_sentences, y_hat, y_actual):
                     number2 += 1
                     writer2.writerow({
                         'no': str(number2),
-                        'token': gold_sentences[i][j][0],
-                        'pos': gold_sentences[i][j][1],
-                        'actual_label': gold_sentences[i][j][2],
+                        'token': gold_sents[i][j][0],
+                        'pos': gold_sents[i][j][1],
+                        'actual_label': gold_sents[i][j][2],
                         'predicted_label': y_hat[i][j],
                         'sent_no': str(i),
                         'token_no': str(j),
@@ -171,7 +171,7 @@ def categorize_predictions(gold_sentences, y_hat, y_actual):
     f2.close()
 
 
-def performance_measurement(crf_model, x, y, gold_sentences):
+def performance_measurement(crf_model, x, y, g_sentences):
     """Utilizes different functions to measure the model's performance and saves the results to files for review."""
     # Cross-validating the model
     cross_val_predictions = cross_val_predict(estimator=crf_model, X=x, y=y, cv=5)
@@ -187,7 +187,7 @@ def performance_measurement(crf_model, x, y, gold_sentences):
                eli5.format_as_text(eli5.explain_weights(crf_model, top=100)), '\n\n', file=file)
     file.close()
     # Saving the potentially correct and the incorrect classifications in separate CSV files for review
-    categorize_predictions(gold_sentences=gold_sentences, y_hat=cross_val_predictions, y_actual=y)
+    categorize_predictions(gold_sents=g_sentences, y_hat=cross_val_predictions, y_actual=y)
 
 
 if __name__ == '__main__':
@@ -198,10 +198,10 @@ if __name__ == '__main__':
 
     sentences = get_grk_sentences()
     gold_sentences = get_gold_sentences(sents=sentences)
-    crf = train_crf_model(gold_sentences=gold_sentences)
+    crf = train_crf_model(gold_stan_sentences=gold_sentences)
     predictions = make_predictions(crf_model=crf[0], sents=sentences)
     save_predictions(sents=sentences, y_hat=predictions)
-    performance_measurement(crf_model=crf[0], x=crf[1], y=crf[2], gold_sentences=gold_sentences)
+    performance_measurement(crf_model=crf[0], x=crf[1], y=crf[2], g_sentences=gold_sentences)
 
     end = timer()
     print(f'\nelapsed time: {math.ceil((end - start) / 60)} minutes')
