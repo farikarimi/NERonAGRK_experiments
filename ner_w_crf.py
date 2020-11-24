@@ -101,7 +101,8 @@ def make_predictions(crf_model, sents):
 
 def save_predictions(sents, y_hat):
     """Saves all of the model's predictions to a CSV file."""
-    csv_file = open(f'results/all_predictions_{datetime.datetime.today().date()}.csv', 'w', encoding='utf-8')
+    csv_file = open(f'results/all_predictions_{datetime.datetime.today().date()}.csv', 'w',
+                    newline='', encoding='utf-8')
     number = 0
     header = ['no', 'token', 'pos', 'actual_label', 'predicted_label',
               'sent_no', 'token_no', 'paragraph', 'sent']
@@ -128,8 +129,10 @@ def save_predictions(sents, y_hat):
 def categorize_predictions(gold_sents, y_hat, y_actual):
     """Categorizes the predictions of the cross-validation into potentially correct and incorrect classifications and
     saves them in two seperate CSV files."""
-    f1 = open(f'results/potentially_correct_predictions_{datetime.datetime.today().date()}.csv', 'w', encoding='utf-8')
-    f2 = open(f'results/misclassifications_{datetime.datetime.today().date()}.csv', 'w', encoding='utf-8')
+    f1 = open(f'results/potentially_correct_predictions_{datetime.datetime.today().date()}.csv', 'w',
+              newline='', encoding='utf-8')
+    f2 = open(f'results/misclassifications_{datetime.datetime.today().date()}.csv', 'w',
+              newline='', encoding='utf-8')
     number1 = 0
     number2 = 0
     header = ['no', 'token', 'pos', 'actual_label', 'predicted_label', 'sent_no', 'token_no', 'sent']
