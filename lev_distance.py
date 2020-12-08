@@ -55,10 +55,11 @@ def get_smallest_lev_dist_in_para(token_para_no, token):
     eng_grk_dict = create_eng_grk_dict()
     eng_grk_dict_for_para = {eng_name: eng_grk_dict[eng_name] for eng_name in eng_nes_per_para[eng_para_no]
                              if eng_name in eng_grk_dict.keys()}
-    print(eng_grk_dict_for_para)
+    print('\n\nnames detected in the paragraph from the ENG-GRK dictionary:', eng_grk_dict_for_para)
+    # list containing the match score of the greek token with each name in the paragraph
     lev_distances = [fuzz.ratio(strip_diacritics(token), strip_diacritics(grk_name))
                      for grk_name in eng_grk_dict_for_para.values()]
-    print('\n\ntoken:', token, '\nlevenshtein distance of token to names in paragraph:',
+    print('current token:', token, '\nmatch score of token with each name:',
           {name: lev_distance for name, lev_distance in zip(eng_grk_dict_for_para.values(), lev_distances)})
     if lev_distances:
         return max(lev_distances)

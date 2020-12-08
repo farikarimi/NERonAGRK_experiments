@@ -1,4 +1,5 @@
 import csv
+import pickle
 import datetime
 import math
 import faulthandler
@@ -9,9 +10,13 @@ import sklearn_crfsuite
 from sklearn_crfsuite.metrics import flat_classification_report
 from sklearn.model_selection import cross_val_predict
 from gold_standard_funcs import has_gold_word
-from util_funcs import print2both
+from util_funcs import print2both, pickle_obj, unpickle_obj
 from lev_distance import get_smallest_lev_dist_in_para
 from grk_xml_funcs import get_grk_sentences
+
+current_token_no = 0
+lev_distances = {}
+from_scratch = False
 
 
 def get_gold_sentences(sents):
@@ -25,8 +30,19 @@ def get_gold_sentences(sents):
 def word2features(sent, i):
     """Returns the feature dictionary for a token."""
     word = sent[i][0]
+    print(f'\nword from word2features: {word}')
     postag = sent[i][1]
-    smallest_lev_dist = get_smallest_lev_dist_in_para(token_para_no=sent[i][3], token=sent[i][0])
+
+    global current_token_no
+    current_token_id = str(current_token_no) + '_' + word
+
+    if from_scratch:
+        smallest_lev_dist = get_smallest_lev_dist_in_para(token_para_no=sent[i][3], token=sent[i][0])
+        lev_distances[current_token_id] = smallest_lev_dist
+    else:
+        smallest_lev_dist = lev_distances.get(current_token_id)
+
+    print(f'\nadded to or read from dict: {current_token_id}: {smallest_lev_dist}\n')
 
     features = {
         'bias': 1.0,
@@ -62,6 +78,8 @@ def word2features(sent, i):
     else:
         features['EOS'] = True
 
+    current_token_no += 1
+
     return features
 
 
@@ -93,9 +111,7 @@ def train_crf_model(gold_stan_sentences):
 def make_predictions(crf_model, sents):
     """Uses the given trained CRF model to predict toponyms and ethnonyms in Herodotus' Histories."""
     # list of lists of feature dicts
-    # print(f'complete sentences:\n\n{sents}')
     features = [sent2features(s) for s in sents]
-    # print(f'features:\n\n{features}')
     return crf_model.predict(X=features)
 
 
@@ -193,18 +209,83 @@ def performance_measurement(crf_model, x, y, g_sentences):
     categorize_predictions(gold_sents=g_sentences, y_hat=cross_val_predictions, y_actual=y)
 
 
+# TODO: using 3 sentences to test if changes are bug-free --> change back
+def run_and_pickle():
+    print(f'\n{datetime.datetime.now()}: getting Greek sentences...')
+    # sentences = get_grk_sentences()   # TODO: uncomment to get sentences from XML
+    # change date in file name accordingly
+    sentences = unpickle_obj('pickle_files/grk_sentences_2020-12-03.pickle')
+    pickle_obj(obj=sentences, path=f'pickle_files/grk_sentences_{datetime.datetime.today().date()}.pickle')
+
+    print(f'\n{datetime.datetime.now()}: getting gold sentences...')
+    global from_scratch
+    from_scratch = True
+    # gold_sentences = get_gold_sentences(sents=sentences) # TODO: uncomment to get sentences from scratch
+    # change date in file name accordingly
+    gold_sentences = unpickle_obj('pickle_files/gold_sentences_2020-12-03.pickle')
+    pickle_obj(obj=gold_sentences, path=f'pickle_files/gold_sentences_{datetime.datetime.today().date()}.pickle')
+
+    print(f'\n{datetime.datetime.now()}: training CRF model...')
+    crf = train_crf_model(gold_stan_sentences=gold_sentences[:2])
+    global lev_distances
+    pickle_obj(obj=lev_distances, path=f'pickle_files/lev_distances_training_{datetime.datetime.today().date()}.pickle')
+    pickle_obj(obj=crf[0], path=f'pickle_files/crf_model_{datetime.datetime.today().date()}.pickle')
+    pickle_obj(obj=crf[1], path=f'pickle_files/features_{datetime.datetime.today().date()}.pickle')
+    pickle_obj(obj=crf[2], path=f'pickle_files/labels_{datetime.datetime.today().date()}.pickle')
+
+    print(f'\n{datetime.datetime.now()}: making predictions with trained model...')
+    lev_distances = {}
+    global current_token_no
+    current_token_no = 0
+    predictions = make_predictions(crf_model=crf[0], sents=sentences[:2])
+    pickle_obj(obj=lev_distances, path=f'pickle_files/lev_distances_pred_{datetime.datetime.today().date()}.pickle')
+
+    print(f'\n{datetime.datetime.now()}: saving predictions...')
+    save_predictions(sents=sentences[:2], y_hat=predictions)
+
+    # print(f'\n{datetime.datetime.now()}: measuring performance...')
+    # performance_measurement(crf_model=crf[0], x=crf[1], y=crf[2], g_sentences=gold_sentences)
+
+
+# TODO: using 3 sentences to test if changes are bug-free --> change back
+def run_from_pickle():
+    print(f'\n{datetime.datetime.now()}: unpickling Greek sentences...')
+    # change date in file name accordingly
+    sentences_unpickled = unpickle_obj('pickle_files/grk_sentences_2020-12-03.pickle')
+
+    print(f'\n{datetime.datetime.now()}: unpickling gold sentences...')
+    # change date in file name accordingly
+    gold_sentences_unpickled = unpickle_obj('pickle_files/gold_sentences_2020-12-03.pickle')
+
+    print(f'\n{datetime.datetime.now()}: training crf model...')
+    global lev_distances
+    # change date in file name accordingly
+    lev_distances = unpickle_obj('pickle_files/lev_distances_training_2020-12-04.pickle')
+    crf = train_crf_model(gold_stan_sentences=gold_sentences_unpickled[:2])
+
+    print(f'\n{datetime.datetime.now()}: making predictions with trained model...')
+    global current_token_no
+    current_token_no = 0
+    # change date in file name accordingly
+    lev_distances = unpickle_obj('pickle_files/lev_distances_pred_2020-12-04.pickle')
+    predictions = make_predictions(crf_model=crf[0], sents=sentences_unpickled[:2])
+
+    print(f'\n{datetime.datetime.now()}: saving predictions...')
+    save_predictions(sents=sentences_unpickled[:2], y_hat=predictions)
+
+    # print(f'\n{datetime.datetime.now()}: measuring performance...')
+    # performance_measurement(crf_model=crf[0], x=crf[1], y=crf[2], g_sentences=gold_sentences_unpickled)
+
+
 if __name__ == '__main__':
     faulthandler.enable()
     print('\nsklearn: %s' % sklearn.__version__)  # 0.23.2
-    print('\nrunning ner_w_crf.py...')
+    print(f'\n{datetime.datetime.now()}: running ner_w_crf.py...')
     start = timer()
 
-    sentences = get_grk_sentences()
-    gold_sentences = get_gold_sentences(sents=sentences)
-    crf = train_crf_model(gold_stan_sentences=gold_sentences)
-    predictions = make_predictions(crf_model=crf[0], sents=sentences)
-    save_predictions(sents=sentences, y_hat=predictions)
-    performance_measurement(crf_model=crf[0], x=crf[1], y=crf[2], g_sentences=gold_sentences)
+    # comment out / uncomment next two lines to create objects from scratch or get data from pickle files
+    run_and_pickle()
+    # run_from_pickle()
 
     end = timer()
     print(f'\nelapsed time: {math.ceil((end - start) / 60)} minutes')
