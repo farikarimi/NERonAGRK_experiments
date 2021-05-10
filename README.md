@@ -8,4 +8,6 @@ ethnonyms starting from a small manually annotated list.
 DH2020 paper:  
 https://hcommons.org/deposits/item/hc:31889  
 GitHub repository with the code for the DH2020 paper (older static version of this repository):  
-https://github.com/farikarimi/NERonAncientGreek 
+https://github.com/farikarimi/NERonAncientGreek  
+Poster:  
+https://osf.io/dmxj9
